@@ -1,0 +1,75 @@
+# Active with:  --spring.profiles.active=prod
+# Required env: DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET, CORS_ALLOWED_ORIGINS, FRONTEND_BASE_URL
+# See deploy/.env.docker.example
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+# Optional: enable when self-service password reset by email
+#  mail:
+#    host: ${MAIL_HOST}
+#    port: ${MAIL_PORT:587}
+#    username: ${MAIL_USERNAME:}
+#    password: ${MAIL_PASSWORD:}
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          starttls:
+#            enable: true
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+# Disable API docs in production
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# Minimal actuator exposure
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    mail:
+      enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.erp: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  frontend-base-url: ${FRONTEND_BASE_URL}
+  mail:
+    from: ${MAIL_FROM:noreply@localhost}
+  security:
+    public-paths:
+      - /api/v1/auth/login
+      - /api/v1/auth/forgot-password
+      - /api/v1/auth/reset-password
+      - /actuator/health
