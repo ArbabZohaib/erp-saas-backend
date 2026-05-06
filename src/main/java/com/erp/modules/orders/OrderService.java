@@ -1,6 +1,8 @@
 package com.erp.modules.orders;
 
+import com.erp.core.security.JwtPrincipal;
 import com.erp.core.tenant.TenantContext;
+import com.erp.core.users.UserRepository;
 import com.erp.modules.customers.api.CustomerLookup;
 import com.erp.modules.orders.api.OrderLookup;
 import com.erp.modules.orders.api.OrderReminderQuery;
@@ -8,8 +10,10 @@ import com.erp.modules.orders.api.OrderReminderView;
 import com.erp.modules.orders.api.OrderStatusUpdater;
 import com.erp.modules.orders.api.OrderSummary;
 import com.erp.modules.orders.dto.OrderRequest;
+import com.erp.modules.orders.dto.OrderFulfillmentStatusRequest;
 import com.erp.modules.orders.dto.OrderResponse;
 import com.erp.modules.orders.mapper.OrderMapper;
+import com.erp.shared.exceptions.BusinessException;
 import com.erp.shared.exceptions.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,12 +32,13 @@ public class OrderService implements OrderLookup, OrderStatusUpdater, OrderRemin
     private final OrderRepository orderRepository;
     private final CustomerLookup customerLookup;
     private final OrderMapper orderMapper;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<OrderResponse> list() {
         UUID orgId = requireOrg();
         return orderRepository.findByOrgIdOrderByOrderDateDesc(orgId).stream()
-                .map(orderMapper::toResponse)
+                .map(this::toResponseWithActorMeta)
                 .toList();
     }
 
@@ -42,13 +47,13 @@ public class OrderService implements OrderLookup, OrderStatusUpdater, OrderRemin
         UUID orgId = requireOrg();
         customerLookup.assertExists(orgId, customerId);
         return orderRepository.findByOrgIdAndCustomerIdOrderByOrderDateDesc(orgId, customerId).stream()
-                .map(orderMapper::toResponse)
+                .map(this::toResponseWithActorMeta)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public OrderResponse get(UUID id) {
-        return orderMapper.toResponse(getEntity(id));
+        return toResponseWithActorMeta(getEntity(id));
     }
 
     @Transactional
@@ -63,7 +68,44 @@ public class OrderService implements OrderLookup, OrderStatusUpdater, OrderRemin
         order.setTotalAmount(request.totalAmount());
         order.setDueDate(request.orderDate().plusDays(terms));
         order.setStatus(OrderStatus.PENDING);
-        return orderMapper.toResponse(orderRepository.save(order));
+        order.setFulfillmentStatus(OrderFulfillmentStatus.INITIATED);
+        return toResponseWithActorMeta(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse updateFulfillmentStatus(UUID id, JwtPrincipal principal, OrderFulfillmentStatusRequest request) {
+        Order order = getEntity(id);
+        OrderFulfillmentStatus current = order.getFulfillmentStatus();
+        OrderFulfillmentStatus target = request.status();
+
+        if (current == target) {
+            return toResponseWithActorMeta(order);
+        }
+        if (current == OrderFulfillmentStatus.CLOSED) {
+            throw new BusinessException("Closed orders cannot be changed");
+        }
+        if (target == OrderFulfillmentStatus.INITIATED) {
+            throw new BusinessException("Cannot move an order back to INITIATED");
+        }
+        if (target == OrderFulfillmentStatus.DELIVERED) {
+            order.setFulfillmentStatus(OrderFulfillmentStatus.DELIVERED);
+            order.setDeliveredAt(java.time.Instant.now());
+            order.setDeliveredByUserId(principal.userId());
+            return toResponseWithActorMeta(orderRepository.save(order));
+        }
+        if (target == OrderFulfillmentStatus.CLOSED) {
+            if (order.getStatus() != OrderStatus.PAID) {
+                throw new BusinessException("Order can be CLOSED only after complete payment");
+            }
+            if (current != OrderFulfillmentStatus.DELIVERED) {
+                throw new BusinessException("Only DELIVERED orders can be CLOSED");
+            }
+            order.setFulfillmentStatus(OrderFulfillmentStatus.CLOSED);
+            order.setClosedAt(java.time.Instant.now());
+            order.setClosedByUserId(principal.userId());
+            return toResponseWithActorMeta(orderRepository.save(order));
+        }
+        throw new BusinessException("Unsupported fulfillment transition");
     }
 
     @Transactional(readOnly = true)
@@ -119,5 +161,37 @@ public class OrderService implements OrderLookup, OrderStatusUpdater, OrderRemin
             throw new IllegalStateException("Tenant context missing");
         }
         return orgId;
+    }
+
+    private OrderResponse toResponseWithActorMeta(Order order) {
+        OrderResponse base = orderMapper.toResponse(order);
+        String deliveredByUserEmail = resolveUserEmail(order.getOrgId(), order.getDeliveredByUserId());
+        String closedByUserEmail = resolveUserEmail(order.getOrgId(), order.getClosedByUserId());
+        return new OrderResponse(
+                base.id(),
+                base.orgId(),
+                base.customerId(),
+                base.orderDate(),
+                base.dueDate(),
+                base.totalAmount(),
+                base.status(),
+                base.fulfillmentStatus(),
+                base.deliveredAt(),
+                base.deliveredByUserId(),
+                deliveredByUserEmail,
+                base.closedAt(),
+                base.closedByUserId(),
+                closedByUserEmail,
+                base.createdAt(),
+                base.updatedAt()
+        );
+    }
+
+    private String resolveUserEmail(UUID orgId, UUID userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId)
+                .filter(u -> orgId.equals(u.getOrgId()))
+                .map(u -> u.getEmail())
+                .orElse("user-" + userId.toString().substring(0, 8));
     }
 }

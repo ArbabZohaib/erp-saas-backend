@@ -1,11 +1,14 @@
 package com.erp.modules.orders;
 
+import com.erp.core.security.JwtPrincipal;
 import com.erp.modules.orders.dto.OrderRequest;
+import com.erp.modules.orders.dto.OrderFulfillmentStatusRequest;
 import com.erp.modules.orders.dto.OrderResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,5 +49,15 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SALES_OFFICER')")
     public OrderResponse create(@Valid @RequestBody OrderRequest request) {
         return orderService.create(request);
+    }
+
+    @PatchMapping("/{id}/fulfillment-status")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SALES_OFFICER')")
+    public OrderResponse updateFulfillmentStatus(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Valid @RequestBody OrderFulfillmentStatusRequest request
+    ) {
+        return orderService.updateFulfillmentStatus(id, principal, request);
     }
 }

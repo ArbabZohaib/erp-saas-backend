@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -34,4 +35,20 @@ public class Order extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private OrderStatus status = OrderStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_status", nullable = false, length = 32)
+    private OrderFulfillmentStatus fulfillmentStatus = OrderFulfillmentStatus.INITIATED;
+
+    @Column(name = "closed_at")
+    private Instant closedAt;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
+    @Column(name = "delivered_by_user_id")
+    private UUID deliveredByUserId;
+
+    @Column(name = "closed_by_user_id")
+    private UUID closedByUserId;
 }

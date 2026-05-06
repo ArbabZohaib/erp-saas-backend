@@ -10,6 +10,8 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface ExpenseMapper {
 
+    @Mapping(target = "userEmail", expression = "java((String) null)")
+    @Mapping(target = "invoiceAttached", expression = "java(Boolean.FALSE)")
     ExpenseResponse toResponse(Expense entity);
 
     @Mapping(target = "id", ignore = true)

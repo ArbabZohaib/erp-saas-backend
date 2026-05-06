@@ -8,10 +8,12 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record ExpenseRequest(
-        @NotNull UUID userId,
+        UUID userId,
         @NotNull BigDecimal amount,
         @NotBlank String category,
         String description,
-        @NotNull LocalDate date
+        @NotNull LocalDate date,
+        BigDecimal billExtractedAmount,
+        String billExtractionConfidence
 ) {
 }

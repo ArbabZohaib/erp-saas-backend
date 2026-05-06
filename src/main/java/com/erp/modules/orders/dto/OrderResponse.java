@@ -1,6 +1,7 @@
 package com.erp.modules.orders.dto;
 
 import com.erp.modules.orders.OrderStatus;
+import com.erp.modules.orders.OrderFulfillmentStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +16,13 @@ public record OrderResponse(
         LocalDate dueDate,
         BigDecimal totalAmount,
         OrderStatus status,
+        OrderFulfillmentStatus fulfillmentStatus,
+        Instant deliveredAt,
+        UUID deliveredByUserId,
+        String deliveredByUserEmail,
+        Instant closedAt,
+        UUID closedByUserId,
+        String closedByUserEmail,
         Instant createdAt,
         Instant updatedAt
 ) {

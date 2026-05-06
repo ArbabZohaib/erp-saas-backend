@@ -34,9 +34,9 @@ VALUES ('f1000001-0001-0001-0001-000000000001', 'f0000001-0001-0001-0001-0000000
         'RETAILER', '+10000000001', '+10000000001', 'billing@globex.example', '1 Market St', 50000.0000, 30,
         'f0000005-0005-0005-0005-000000000005', NOW(), NOW());
 
-INSERT INTO orders (id, org_id, customer_id, order_date, due_date, total_amount, status, created_at, updated_at)
+INSERT INTO orders (id, org_id, customer_id, order_date, due_date, total_amount, status, fulfillment_status, created_at, updated_at)
 VALUES ('f2000001-0001-0001-0001-000000000001', 'f0000001-0001-0001-0001-000000000001',
-        'f1000001-0001-0001-0001-000000000001', DATE '2026-03-19', DATE '2026-04-18', 10000.0000, 'PENDING',
+        'f1000001-0001-0001-0001-000000000001', DATE '2026-03-19', DATE '2026-04-18', 10000.0000, 'PENDING', 'INITIATED',
         NOW(), NOW());
 
 INSERT INTO payments (id, org_id, order_id, amount, payment_date, method, created_at, updated_at)

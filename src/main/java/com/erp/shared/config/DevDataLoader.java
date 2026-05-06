@@ -13,6 +13,8 @@ import com.erp.modules.orders.Order;
 import com.erp.modules.orders.OrderRepository;
 import com.erp.modules.orders.OrderStatus;
 import com.erp.modules.expenses.Expense;
+import com.erp.modules.expenses.ExpenseApprovalStatus;
+import com.erp.modules.expenses.ExpenseScrutinyLevel;
 import com.erp.modules.expenses.ExpenseRepository;
 import com.erp.modules.payments.Payment;
 import com.erp.modules.payments.PaymentMethod;
@@ -145,6 +147,8 @@ public class DevDataLoader implements CommandLineRunner {
         e.setCategory("TRAVEL");
         e.setDescription("Client visit");
         e.setDate(LocalDate.of(2026, 4, 1));
+        e.setApprovalStatus(ExpenseApprovalStatus.APPROVED);
+        e.setScrutinyLevel(ExpenseScrutinyLevel.NO_BILL);
         expenseRepository.save(e);
     }
 
